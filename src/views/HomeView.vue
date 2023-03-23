@@ -4,9 +4,22 @@ import { auth, db } from "../firebaseConfig";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import router from "../router";
 import cards from "./objects.json";
-import { ref } from "vue";
+import { ref, computed, watch } from "vue";
+import { useCart } from "../stores/cart";
 
 const cart = ref([]);
+const cartPreview = ref(false);
+const cartTotal = ref(0);
+const { getCart, setCart } = useCart();
+watch(cart.value, () => {
+  let sum = 0;
+  console.log("changed", cart.value);
+  cart.value.forEach((item) => {
+    sum += cards[item.id - 1].price * item.quantity;
+  });
+
+  cartTotal.value = sum;
+});
 
 const addToCart = (id) => {
   const index = cart.value.findIndex((item) => item.id === id);
@@ -42,20 +55,32 @@ const signOutUser = async () => {
       // An error happened.
     });
 };
+
+const proceedToCheckout = () => {
+  setCart(cart);
+  router.push("/checkout");
+};
 </script>
 
 <template>
   <div class="home">
     <nav>
       <button @click="signOutUser">Signout</button>
-      <p>Cart : {{ cart.length }}</p>
+      <div class="cart">
+        <p @click="cartPreview = !cartPreview">Cart</p>
+        <div class="cart-preview" v-if="cartPreview">
+          <p>{{ cart.length }} items</p>
+          <p>Total : {{ cartTotal }}</p>
+          <button @click="proceedToCheckout">Proceed to CheckouT</button>
+        </div>
+      </div>
     </nav>
     <div class="cards">
       <div class="card" v-for="card in cards" :key="card.id">
         <h3>{{ card.product }}</h3>
         <p>{{ card.price }}</p>
         <p>{{ card.rating }}</p>
-        <button @click="addToCart(card.id)">Buy Now</button>
+        <button @click="addToCart(card.id)">Add To Cart</button>
       </div>
     </div>
   </div>
